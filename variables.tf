@@ -42,6 +42,11 @@ variable "container_secrets" {
   default     = {}
 }
 
+variable "secrets" {
+  type    = list(any)
+  default = []
+}
+
 variable "healthCheck" {
   type        = any
   description = "Container Health Check parameters"
