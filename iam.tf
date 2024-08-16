@@ -1,7 +1,3 @@
-locals {
-  secrets_arns = distinct([for v in values(var.container_secrets) : regex("arn:aws:secretsmanager:[^:]+:[^:]+:secret:[^:]+", v)])
-}
-
 resource "aws_iam_role" "ecs_task_execution_role" {
   name = "${var.task_name}ecsTaskExecutionRole"
   assume_role_policy = jsonencode({
@@ -20,7 +16,7 @@ resource "aws_iam_role" "ecs_task_execution_role" {
 }
 
 resource "aws_iam_policy" "secrets_manager_policy" {
-  count       = length(local.secrets_arns) > 0 ? 1 : 0
+  count       = length(var.secrets) > 0 ? 1 : 0
   name        = "${var.task_name}SecretsManagerPolicy"
   description = "Policy allowing GetSecretValue on multiple secrets"
 
@@ -30,7 +26,7 @@ resource "aws_iam_policy" "secrets_manager_policy" {
       {
         Effect   = "Allow",
         Action   = ["secretsmanager:GetSecretValue"],
-        Resource = jsondecode(jsonencode(local.secrets_arns)),
+        Resource = var.secrets,
       }
     ],
   })
@@ -47,7 +43,7 @@ resource "aws_iam_role_policy_attachment" "ecs_task_exec_role_policy" {
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_task_exec_role_secrets_manager_policy" {
-  count      = aws_iam_policy.secrets_manager_policy != null ? length(aws_iam_policy.secrets_manager_policy) : 0
+  count      = length(aws_iam_policy.secrets_manager_policy) > 0 ? 1 : 0
   policy_arn = aws_iam_policy.secrets_manager_policy[count.index].arn
   role       = aws_iam_role.ecs_task_execution_role.name
 }
